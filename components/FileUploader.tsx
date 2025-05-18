@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-
+import React, { useCallback, useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { cn, convertFileToUrl, getFileType } from "@/lib/utils";
@@ -22,42 +21,77 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
   const path = usePathname();
   const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Use useEffect to handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
+      if (isUploading) return;
       setFiles(acceptedFiles);
+      setIsUploading(true);
 
-      const uploadPromises = acceptedFiles.map(async (file) => {
-        if (file.size > MAX_FILE_SIZE) {
-          setFiles((prevFiles) =>
-            prevFiles.filter((f) => f.name !== file.name),
-          );
+      try {
+        const uploadPromises = acceptedFiles.map(async (file) => {
+          if (file.size > MAX_FILE_SIZE) {
+            setFiles((prevFiles) =>
+              prevFiles.filter((f) => f.name !== file.name),
+            );            toast({
+              variant: "destructive",
+              description: (
+                <p className="body-2">
+                  <span className="font-semibold">{file.name}</span> is too large.
+                  Max file size is 50MB.
+                </p>
+              ),
+            });
+            return;
+          }
 
-          return toast({
-            description: (
-              <p className="body-2 text-white">
-                <span className="font-semibold">{file.name}</span> is too large.
-                Max file size is 50MB.
-              </p>
-            ),
-            className: "error-toast",
-          });
-        }
+          const uploadedFile = await uploadFile({ file, ownerId, accountId, path });
+          
+          if (uploadedFile) {
+            setFiles((prevFiles) =>
+              prevFiles.filter((f) => f.name !== file.name),
+            );            toast({
+              variant: "default",
+              description: (
+                <p className="body-2">
+                  <span className="font-semibold">{file.name}</span> uploaded successfully.
+                </p>
+              ),
+              className: "bg-brand text-white",
+            });
+          } else {            toast({
+              variant: "destructive",
+              description: (
+                <p className="body-2">
+                  Failed to upload <span className="font-semibold">{file.name}</span>
+                </p>
+              ),
+            });
+          }
+        });
 
-        return uploadFile({ file, ownerId, accountId, path }).then(
-          (uploadedFile) => {
-            if (uploadedFile) {
-              setFiles((prevFiles) =>
-                prevFiles.filter((f) => f.name !== file.name),
-              );
-            }
-          },
-        );
-      });
-
-      await Promise.all(uploadPromises);
+        await Promise.all(uploadPromises);
+      } catch (err) {
+        console.error('Upload error:', err);        toast({
+          variant: "destructive",
+          description: (
+            <p className="body-2">
+              An error occurred while uploading files.
+            </p>
+          ),
+        });
+      } finally {
+        setIsUploading(false);
+      }
     },
-    [ownerId, accountId, path],
+    [ownerId, accountId, path, isUploading, toast],
   );
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
@@ -70,6 +104,23 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
     setFiles((prevFiles) => prevFiles.filter((file) => file.name !== fileName));
   };
 
+  if (!mounted) {
+    // Return a placeholder with the same structure to prevent hydration issues
+    return (
+      <div className="cursor-pointer">
+        <Button type="button" className={cn("uploader-button", className)}>
+          <Image
+            src="/assets/icons/upload.svg"
+            alt="upload"
+            width={24}
+            height={24}
+          />
+          <p>Upload</p>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div {...getRootProps()} className="cursor-pointer">
       <input {...getInputProps()} />
@@ -79,16 +130,14 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
           alt="upload"
           width={24}
           height={24}
-        />{" "}
+        />
         <p>Upload</p>
       </Button>
       {files.length > 0 && (
         <ul className="uploader-preview-list">
-          <h4 className="h4 text-light-100">Uploading</h4>
-
+          <h4 className="h4 text-gray-500">Uploading</h4>
           {files.map((file, index) => {
             const { type, extension } = getFileType(file.name);
-
             return (
               <li
                 key={`${file.name}-${index}`}
@@ -100,24 +149,26 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
                     extension={extension}
                     url={convertFileToUrl(file)}
                   />
-
                   <div className="preview-item-name">
                     {file.name}
-                    <Image
-                      src="/assets/icons/file-loader.gif"
-                      width={80}
-                      height={26}
-                      alt="Loader"
-                    />
+                    {isUploading && (
+                      <Image
+                        src="/assets/icons/file-loader.gif"
+                        width={80}
+                        height={26}
+                        alt="Loading"
+                        className="h-auto"
+                      />
+                    )}
                   </div>
                 </div>
-
                 <Image
                   src="/assets/icons/remove.svg"
                   width={24}
                   height={24}
                   alt="Remove"
                   onClick={(e) => handleRemoveFile(e, file.name)}
+                  className="cursor-pointer"
                 />
               </li>
             );

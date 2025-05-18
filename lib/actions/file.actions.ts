@@ -22,42 +22,58 @@ export const uploadFile = async ({
   const { storage, databases } = await createAdminClient();
 
   try {
-    const inputFile = InputFile.fromBuffer(file, file.name);
+    // Create a buffer from the file
+    const buffer = await file.arrayBuffer();
+    const inputFile = InputFile.fromBuffer(Buffer.from(buffer), file.name);
 
+    // Upload file to storage
     const bucketFile = await storage.createFile(
       appwriteConfig.bucketId,
       ID.unique(),
       inputFile,
     );
 
+    if (!bucketFile) {
+      throw new Error("Failed to upload file to storage");
+    }
+
+    // Create the file document with Appwrite's required structure
+    const fileInfo = getFileType(bucketFile.name);
     const fileDocument = {
-      type: getFileType(bucketFile.name).type,
+      type: fileInfo.type,
       name: bucketFile.name,
       url: constructFileUrl(bucketFile.$id),
-      extension: getFileType(bucketFile.name).extension,
+      extension: fileInfo.extension,
       size: bucketFile.sizeOriginal,
       owner: ownerId,
       accountId,
       users: [],
-      bucketFileId: bucketFile.$id,
+      bucketField: `${appwriteConfig.bucketId}/${bucketFile.$id}`, // Store as string in format "bucketId/fileId"
     };
 
-    const newFile = await databases
-      .createDocument(
-        appwriteConfig.databaseId,
-        appwriteConfig.filesCollectionId,
-        ID.unique(),
-        fileDocument,
-      )
-      .catch(async (error: unknown) => {
-        await storage.deleteFile(appwriteConfig.bucketId, bucketFile.$id);
-        handleError(error, "Failed to create file document");
-      });
+    // Create document in database
+    const newFile = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.filesCollectionId,
+      ID.unique(),
+      fileDocument,
+    );
+
+    if (!newFile) {
+      // Cleanup: delete uploaded file if document creation fails
+      await storage.deleteFile(appwriteConfig.bucketId, bucketFile.$id);
+      throw new Error("Failed to create file document");
+    }
 
     revalidatePath(path);
     return parseStringify(newFile);
   } catch (error) {
-    handleError(error, "Failed to upload file");
+    if (error instanceof Error) {
+      handleError(error, `Failed to upload file: ${error.message}`);
+    } else {
+      handleError(error, "Failed to upload file: Unknown error");
+    }
+    return null;
   }
 };
 
@@ -170,12 +186,23 @@ export const updateFileUsers = async ({
 
 export const deleteFile = async ({
   fileId,
-  bucketFileId,
   path,
 }: DeleteFileProps) => {
   const { databases, storage } = await createAdminClient();
 
   try {
+    // First get the file document to access its bucket info
+    const file = await databases.getDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.filesCollectionId,
+      fileId
+    );
+
+    if (!file) {
+      throw new Error("File not found");
+    }
+
+    // Delete the database document
     const deletedFile = await databases.deleteDocument(
       appwriteConfig.databaseId,
       appwriteConfig.filesCollectionId,
@@ -183,13 +210,16 @@ export const deleteFile = async ({
     );
 
     if (deletedFile) {
-      await storage.deleteFile(appwriteConfig.bucketId, bucketFileId);
+      // Parse the bucketField string to get bucketId and fileId
+      const [bucketId, fileId] = file.bucketField.split('/');
+      // Delete the actual file from storage
+      await storage.deleteFile(bucketId, fileId);
     }
 
     revalidatePath(path);
     return parseStringify({ status: "success" });
   } catch (error) {
-    handleError(error, "Failed to rename file");
+    handleError(error, "Failed to delete file");
   }
 };
 
