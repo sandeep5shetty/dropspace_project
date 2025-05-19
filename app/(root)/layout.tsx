@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { getCurrentUser } from "@/lib/actions/user.actions";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/toaster";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,11 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
         <div className="main-content">{children}</div>
       </section>
 
+      <FeedbackWidget />
       <Toaster />
     </main>
   );
 };
+
 export default Layout;
+
