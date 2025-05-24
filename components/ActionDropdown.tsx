@@ -19,7 +19,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { Models } from "node-appwrite";
 import { actionsDropdownItems } from "@/constants";
-import Link from "next/link";
 import { constructDownloadUrl } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -169,12 +168,13 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
                   setIsModalOpen(true);
                 }
               }}
-            >
-              {actionItem.value === "download" ? (
-                <Link
-                  href={constructDownloadUrl(file.bucketFileId)}
+            >              {actionItem.value === "download" ? (
+                <a
+                  href={constructDownloadUrl(file.bucketField.split('/')[1])}
                   download={file.name}
                   className="flex items-center gap-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <Image
                     src={actionItem.icon}
@@ -183,7 +183,7 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
                     height={30}
                   />
                   {actionItem.label}
-                </Link>
+                </a>
               ) : (
                 <div className="flex items-center gap-2">
                   <Image
