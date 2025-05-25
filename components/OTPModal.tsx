@@ -68,9 +68,9 @@ const OtpModal = ({
 
     setIsLoading(false);
   };
-
   const handleResendOtp = async () => {
     setError(""); // Clear error when requesting new OTP
+    setPassword(""); // Clear the OTP input field
     await sendEmailOTP({ email });
   };
 

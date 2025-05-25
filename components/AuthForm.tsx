@@ -24,10 +24,10 @@ type FormType = "sign-in" | "sign-up";
 
 const authFormSchema = (formType: FormType) => {
   return z.object({
-    email: z.string().email(),
+    email: z.string().email("Please enter a valid email address"),
     fullName:
       formType === "sign-up"
-        ? z.string().min(2).max(50)
+        ? z.string().min(2, "Please enter your full name").max(50, "Name is too long")
         : z.string().optional(),
   });
 };
@@ -142,7 +142,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             )}
           </Button>
 
-          {errorMessage && <p className="error-message">*{errorMessage}</p>}
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
 
           <div className="body-2 flex justify-center">
             <p className="text-light-100">
