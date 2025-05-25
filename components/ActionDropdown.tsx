@@ -97,6 +97,11 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && name.trim() && !isLoading) {
+                  handleAction();
+                }
+              }}
             />
           )}
           {value === "details" && <FileDetails file={file} />}

@@ -28,28 +28,33 @@ const OtpModal = ({
 }: {
   accountId: string;
   email: string;
-}) => {  const router = useRouter();
+}) => {
+  const router = useRouter();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault();
+    if (isLoading) return;
+    
     setIsLoading(true);
     setError(""); // Clear any previous errors
 
     console.log({ accountId, password });
 
-    try {      const sessionId = await verifySecret({ accountId, password });
+    try {
+      const sessionId = await verifySecret({ accountId, password });
 
-      console.log({ sessionId });      if (sessionId) {
+      console.log({ sessionId });
+      if (sessionId) {
         toast({
           title: "Success!",
           description: "OTP verified successfully",
           className: "bg-brand text-white",
-          duration: 1500, // Show toast for 1.5 seconds
+          duration: 1500,
         });
         
         // Wait for the toast to be shown before redirecting
@@ -90,10 +95,20 @@ const OtpModal = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <InputOTP maxLength={6} value={password} onChange={(value) => {
-          setPassword(value);
-          setError(""); // Clear error when user types
-        }}>
+        <InputOTP
+          maxLength={6}
+          value={password}
+          onChange={(value) => {
+            setPassword(value);
+            setError(""); // Clear error when user types
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && password.length === 6 && !isLoading) {
+              handleSubmit();
+            }
+          }}
+          className="outline-none"
+        >
           <InputOTPGroup className="shad-otp">
             <InputOTPSlot index={0} className="shad-otp-slot" />
             <InputOTPSlot index={1} className="shad-otp-slot" />
@@ -103,8 +118,9 @@ const OtpModal = ({
             <InputOTPSlot index={5} className="shad-otp-slot" />
           </InputOTPGroup>
         </InputOTP>
-          {error && (
-          <p className="mt-2 text-center text-destructive body-2">
+
+        {error && (
+          <p className="body-2 mt-2 text-center text-destructive">
             {error}
           </p>
         )}
@@ -115,6 +131,7 @@ const OtpModal = ({
               onClick={handleSubmit}
               className="shad-submit-btn h-12"
               type="button"
+              disabled={isLoading}
             >
               Submit
               {isLoading && (
@@ -133,7 +150,7 @@ const OtpModal = ({
               <Button
                 type="button"
                 variant="link"
-                className="pl-1 text-brand"
+                className="text-brand pl-1"
                 onClick={handleResendOtp}
               >
                 Click to resend
