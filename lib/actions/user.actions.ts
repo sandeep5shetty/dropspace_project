@@ -43,14 +43,16 @@ export const createAccount = async ({
 }: {
   fullName: string;
   email: string;
-}) => {
-  const existingUser = await getUserByEmail(email);
+}) => {  const existingUser = await getUserByEmail(email);
+
+  if (existingUser) {
+    throw new Error("User already exists with this email. Please sign in instead.");
+  }
 
   const accountId = await sendEmailOTP({ email });
   if (!accountId) throw new Error("Failed to send an OTP");
 
-  if (!existingUser) {
-    const { databases } = await createAdminClient();
+  const { databases } = await createAdminClient();
 
     await databases.createDocument(
       appwriteConfig.databaseId,

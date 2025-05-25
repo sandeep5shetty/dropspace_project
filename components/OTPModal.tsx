@@ -20,6 +20,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { verifySecret, sendEmailOTP } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 const OtpModal = ({
   accountId,
@@ -27,32 +28,44 @@ const OtpModal = ({
 }: {
   accountId: string;
   email: string;
-}) => {
-  const router = useRouter();
+}) => {  const router = useRouter();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(""); // Clear any previous errors
 
     console.log({ accountId, password });
 
-    try {
-      const sessionId = await verifySecret({ accountId, password });
+    try {      const sessionId = await verifySecret({ accountId, password });
 
-      console.log({ sessionId });
-
-      if (sessionId) router.push("/");
+      console.log({ sessionId });      if (sessionId) {
+        toast({
+          title: "Success!",
+          description: "OTP verified successfully",
+          className: "bg-brand text-white",
+          duration: 1500, // Show toast for 1.5 seconds
+        });
+        
+        // Wait for the toast to be shown before redirecting
+        await new Promise(resolve => setTimeout(resolve, 800));
+        router.push("/");
+      }
     } catch (error) {
       console.log("Failed to verify OTP", error);
+      setError("Invalid OTP. Please try again.");
     }
 
     setIsLoading(false);
   };
 
   const handleResendOtp = async () => {
+    setError(""); // Clear error when requesting new OTP
     await sendEmailOTP({ email });
   };
 
@@ -77,7 +90,10 @@ const OtpModal = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <InputOTP maxLength={6} value={password} onChange={setPassword}>
+        <InputOTP maxLength={6} value={password} onChange={(value) => {
+          setPassword(value);
+          setError(""); // Clear error when user types
+        }}>
           <InputOTPGroup className="shad-otp">
             <InputOTPSlot index={0} className="shad-otp-slot" />
             <InputOTPSlot index={1} className="shad-otp-slot" />
@@ -87,6 +103,11 @@ const OtpModal = ({
             <InputOTPSlot index={5} className="shad-otp-slot" />
           </InputOTPGroup>
         </InputOTP>
+          {error && (
+          <p className="mt-2 text-center text-destructive body-2">
+            {error}
+          </p>
+        )}
 
         <AlertDialogFooter>
           <div className="flex w-full flex-col gap-4">

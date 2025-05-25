@@ -27,21 +27,25 @@ export const navItems = [
 ];
 
 export const actionsDropdownItems = [
+
   {
     label: "Rename",
     icon: "/assets/icons/edit.svg",
     value: "rename",
   },
+
   {
     label: "Details",
     icon: "/assets/icons/info.svg",
     value: "details",
   },
+
   {
     label: "Share",
     icon: "/assets/icons/share.svg",
     value: "share",
   },
+
   {
     label: "Download",
     icon: "/assets/icons/download.svg",
@@ -79,6 +83,7 @@ export const sortTypes = [
     label: "Size (Lowest)",
     value: "size-asc",
   },
+  
 ];
 
 export const avatarPlaceholderUrl =
