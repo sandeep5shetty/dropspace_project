@@ -59,12 +59,9 @@ const AuthForm = ({ type }: { type: FormType }) => {
             })
           : await signInUser({ email: values.email });
 
-      setAccountId(user.accountId);    } catch (error: any) {
-      if (error.message?.includes("User already exists")) {
-        setErrorMessage("User already exists with this email. Please sign in instead.");
-      } else {
-        setErrorMessage("Failed to create account. Please try again.");
-      }
+      setAccountId(user.accountId);
+    } catch {
+      setErrorMessage("Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
