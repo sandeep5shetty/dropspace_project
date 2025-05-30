@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -14,13 +15,26 @@ const Label = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
     VariantProps<typeof labelVariants>
->(({ className, ...props }, ref) => (
+>(({ className, ...props }, ref) => {
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) {
+    return null
+  }
+
+  return (
   <LabelPrimitive.Root
     ref={ref}
+    suppressHydrationWarning
     className={cn(labelVariants(), className)}
     {...props}
   />
-))
+  )
+})
 Label.displayName = LabelPrimitive.Root.displayName
 
 export { Label }
