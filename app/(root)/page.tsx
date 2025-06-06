@@ -9,9 +9,12 @@ import { Thumbnail } from "@/components/Thumbnail";
 import { Separator } from "@/components/ui/separator";
 import { getFiles, getTotalSpaceUsed } from "@/lib/actions/file.actions";
 import { convertFileSize, getUsageSummary } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/actions/user.actions";
+import FileUploader from "@/components/FileUploader";
 
 const Dashboard = async () => {
-  // Parallel requests
+  // Get current user and space data
+  const currentUser = await getCurrentUser();
   const [files, totalSpace] = await Promise.all([
     getFiles({ types: [], limit: 10 }),
     getTotalSpaceUsed(),
@@ -21,9 +24,14 @@ const Dashboard = async () => {
   const usageSummary = getUsageSummary(totalSpace);
 
   return (
-    <div className="dashboard-container">
-      <section>
-        <Chart used={totalSpace.used} />
+    <div className="dashboard-container">      <section>        <Chart used={totalSpace.used} />
+          {/* Mobile-only file uploader */}
+        <div className="md:hidden mt-6 flex justify-center px-4">          <FileUploader 
+            ownerId={currentUser.$id} 
+            accountId={currentUser.$id}
+            className="w-full"
+          />
+        </div>
 
         {/* Uploaded file type summaries */}
         <ul className="dashboard-summary-list">

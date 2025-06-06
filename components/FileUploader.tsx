@@ -132,9 +132,8 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
           height={24}
         />
         <p>Upload</p>
-      </Button>
-      {files.length > 0 && (
-        <ul className="uploader-preview-list">
+      </Button>      {files.length > 0 && (
+        <ul className="uploader-preview-list mb-20">
           <h4 className="h4 text-gray-500">Uploading</h4>
           {files.map((file, index) => {
             const { type, extension } = getFileType(file.name);
@@ -148,16 +147,14 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
                     type={type}
                     extension={extension}
                     url={convertFileToUrl(file)}
-                  />
-                  <div className="preview-item-name">
-                    {file.name}
-                    {isUploading && (
-                      <Image
+                  />                  <div className="preview-item-name flex items-center gap-2">
+                    <span className="truncate text-sm sm:text-base">{file.name}</span>
+                    {isUploading && (                      <Image
                         src="/assets/icons/file-loader.gif"
                         width={80}
                         height={26}
                         alt="Loading"
-                        className="h-auto"
+                        className="size-auto w-[60px] sm:w-[80px] shrink-0"
                       />
                     )}
                   </div>

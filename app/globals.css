@@ -343,15 +343,13 @@
   /* FileUploader */
   .uploader-button {
     @apply primary-btn h-[52px] gap-2 px-10 shadow-drop-1 !important;
-  }
-  .uploader-preview-list {
-    @apply fixed bottom-10 right-10 z-50 flex size-full h-fit max-w-[480px] flex-col gap-3 rounded-[20px] bg-white p-7 shadow-drop-3 !important;
+  }  .uploader-preview-list {
+    @apply fixed bottom-10 right-[5%] sm:right-[20%] z-50 flex w-[90%] sm:w-[480px] h-fit flex-col gap-3 rounded-[20px] bg-white p-7 shadow-drop-3 !important;
   }
   .uploader-preview-item {
     @apply flex items-center justify-between  gap-3 rounded-xl p-3 shadow-drop-3 !important;
-  }
-  .preview-item-name {
-    @apply subtitle-2 mb-2 line-clamp-1 max-w-[300px] !important;
+  }  .preview-item-name {
+    @apply subtitle-2 mb-2 line-clamp-1 max-w-[200px] sm:max-w-[300px] overflow-hidden !important;
   }
 
   .error-toast {
