@@ -5,7 +5,7 @@ import Script from "next/script";
 export function FeedbackWidget() {
   return (
     <>
-      <div style={{ position: "fixed", bottom: "15px", right: "15px", zIndex: 50 }}>
+      <div style={{ position: "fixed", bottom: "15px", right: "15px", zIndex: 150 }}>
         <widget-web-component
           theme="midnightMystery"
           website-name="DropSpace"
