@@ -204,10 +204,12 @@
   .main-content {
     @apply remove-scrollbar h-full flex-1 overflow-auto bg-light-400 px-5 py-7 sm:mr-7 sm:rounded-[30px] md:mb-7 md:px-9 md:py-10 !important;
   }
-
   /* Dashboard */
   .dashboard-container {
-    @apply mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2 xl:gap-10 !important;
+    @apply mx-auto grid max-w-7xl grid-cols-1 gap-6 grid-flow-dense md:grid-cols-2 xl:gap-10 !important;
+  }
+  .dashboard-container > section:last-child {
+    @apply md:order-none order-first !important;
   }
   .dashboard-summary-list {
     @apply mt-6 grid grid-cols-1 gap-4 xl:mt-10 xl:grid-cols-2 xl:gap-9 !important;
@@ -227,6 +229,7 @@
   .dashboard-recent-files {
     @apply h-full rounded-[20px] bg-white p-5 xl:p-8 !important;
   }
+  
   .recent-file-details {
     @apply flex w-full items-center gap-2 !important;
   }
