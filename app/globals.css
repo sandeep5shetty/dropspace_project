@@ -228,10 +228,13 @@
     @apply h-full rounded-[20px] bg-white p-5 xl:p-8 !important;
   }
   .recent-file-details {
-    @apply flex w-full flex-col xl:flex-row xl:justify-between !important;
+    @apply flex w-full items-center gap-2 !important;
+  }
+  .recent-file-details > div:first-child {
+    @apply flex flex-1 flex-col gap-1 min-w-0 !important;
   }
   .recent-file-name {
-    @apply subtitle-2 line-clamp-1 w-full text-light-100 sm:max-w-[200px] lg:max-w-[250px] !important;
+    @apply subtitle-2 truncate text-light-100 !important;
   }
   .recent-file-date {
     @apply body-2 text-light-100/80 !important;
