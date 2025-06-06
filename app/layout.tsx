@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from 'next/font/google'
 import { Analytics } from "@vercel/analytics/react"
+import Footer from "@/components/Footer";
 
 import "./globals.css";
 
@@ -20,13 +21,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
+  return (    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${poppins.variable} font-poppins antialiased`}
+        className={`${poppins.variable} font-poppins antialiased min-h-screen`}
         suppressHydrationWarning
       >
-        {children}
+        <div className="pb-16">
+          {children}
+        </div>
+        <Footer />
         <Analytics />
       </body>
     </html>
