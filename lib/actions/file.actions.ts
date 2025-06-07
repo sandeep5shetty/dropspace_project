@@ -13,6 +13,10 @@ const handleError = (error: unknown, message: string) => {
   throw error;
 };
 
+// Adjusted for free plan limitations
+const MAX_UPLOAD_TIME = 55; // 55 seconds to allow for overhead
+const RECOMMENDED_MAX_SIZE = 15 * 1024 * 1024; // 15MB recommended for 60s timeout
+
 export const uploadFile = async ({
   file,
   ownerId,
@@ -22,64 +26,85 @@ export const uploadFile = async ({
   const { storage, databases } = await createAdminClient();
 
   try {
-    // Create a buffer from the file, but using a more efficient way
-    const buffer = await file.arrayBuffer();
-    const inputFile = InputFile.fromBuffer(Buffer.from(buffer), file.name);
-
-    // Upload file to storage with timeout
-    const bucketFilePromise = storage.createFile(
-      appwriteConfig.bucketId,
-      ID.unique(),
-      inputFile
-    );
-
-    const timeoutPromise = new Promise((resolve, reject) => {
-      setTimeout(() => reject(new Error('Upload timeout after 5 minutes')), 300000);
-    });
-
-    const bucketFile = await Promise.race([bucketFilePromise, timeoutPromise]) as Models.File;
-
-    if (!bucketFile) {
-      throw new Error("Failed to upload file to storage");
+    // Pre-upload size check
+    if (file.size > RECOMMENDED_MAX_SIZE) {
+      throw new Error(`File size (${(file.size / (1024 * 1024)).toFixed(2)}MB) is too large for reliable upload. Please use files smaller than 15MB to ensure successful upload within the time limit.`);
     }
 
-    // Create the file document with Appwrite's required structure
-    const fileInfo = getFileType(bucketFile.name);
-    const fileDocument = {
-      type: fileInfo.type,
-      name: bucketFile.name,
-      url: constructFileUrl(bucketFile.$id),
-      extension: fileInfo.extension,
-      size: bucketFile.sizeOriginal,
-      owner: ownerId,
-      accountId,
-      users: [],
-      bucketField: `${appwriteConfig.bucketId}/${bucketFile.$id}`,
+    // Set up upload timeout for free plan
+    const uploadPromise = async () => {
+      // Convert file to buffer with proper error handling
+      const buffer = await file.arrayBuffer().catch(error => {
+        throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      });
+
+      // Create input file
+      const inputFile = InputFile.fromBuffer(Buffer.from(buffer), file.name);
+      
+      // Upload file with unique ID
+      const uploadedFile = await storage.createFile(
+        appwriteConfig.bucketId,
+        ID.unique(),
+        inputFile
+      );
+
+      if (!uploadedFile) {
+        throw new Error("Failed to upload file to storage");
+      }
+
+      // Create the file document with Appwrite's required structure
+      const fileInfo = getFileType(uploadedFile.name);
+      const fileDocument = {
+        type: fileInfo.type,
+        name: uploadedFile.name,
+        url: constructFileUrl(uploadedFile.$id),
+        extension: fileInfo.extension,
+        size: uploadedFile.sizeOriginal,
+        owner: ownerId,
+        accountId,
+        users: [],
+        bucketField: `${appwriteConfig.bucketId}/${uploadedFile.$id}`,
+      };
+
+      // Create document in database
+      const newFile = await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.filesCollectionId,
+        ID.unique(),
+        fileDocument,
+      );
+
+      if (!newFile) {
+        // Cleanup: delete uploaded file if document creation fails
+        await storage.deleteFile(appwriteConfig.bucketId, uploadedFile.$id);
+        throw new Error("Failed to create file document");
+      }
+
+      return newFile;
     };
 
-    // Create document in database
-    const newFile = await databases.createDocument(
-      appwriteConfig.databaseId,
-      appwriteConfig.filesCollectionId,
-      ID.unique(),
-      fileDocument,
-    );
+    // Set up timeout promise for free plan
+    const timeoutPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        clearTimeout(timeout);
+        reject(new Error(`Upload timed out after ${MAX_UPLOAD_TIME} seconds. Please try a smaller file.`));
+      }, MAX_UPLOAD_TIME * 1000);
+    });
 
-    if (!newFile) {
-      // Cleanup: delete uploaded file if document creation fails
-      await storage.deleteFile(appwriteConfig.bucketId, bucketFile.$id);
-      throw new Error("Failed to create file document");
-    }
+    // Race between upload and timeout
+    const newFile = await Promise.race([uploadPromise(), timeoutPromise]);
 
     revalidatePath(path);
     return parseStringify(newFile);
   } catch (error) {
     if (error instanceof Error) {
+      let errorMessage = `Failed to upload file: ${error.message}`;
       if (error.message.includes('timeout')) {
-        handleError(error, 'File upload timed out. Please try again.');
-      } else {
-        handleError(error, `Failed to upload file: ${error.message}`);
+        errorMessage = `Upload timed out. Please try a file smaller than 15MB.`;
+      } else if (error.message.includes('too large')) {
+        errorMessage = error.message;
       }
+      handleError(error, errorMessage);
     } else {
       handleError(error, "Failed to upload file: Unknown error");
     }
@@ -92,7 +117,7 @@ const createQueries = (
   types: string[],
   searchText: string,
   sort: string,
-  limit?: number,
+  limit?: number
 ) => {
   const queries = [
     Query.or([
@@ -109,7 +134,7 @@ const createQueries = (
     const [sortBy, orderBy] = sort.split("-");
 
     queries.push(
-      orderBy === "asc" ? Query.orderAsc(sortBy) : Query.orderDesc(sortBy),
+      orderBy === "asc" ? Query.orderAsc(sortBy) : Query.orderDesc(sortBy)
     );
   }
 
@@ -137,7 +162,6 @@ export const getFiles = async ({
       queries,
     );
 
-    console.log({ files });
     return parseStringify(files);
   } catch (error) {
     handleError(error, "Failed to get files");
@@ -160,7 +184,7 @@ export const renameFile = async ({
       fileId,
       {
         name: newName,
-      },
+      }
     );
 
     revalidatePath(path);
@@ -184,7 +208,7 @@ export const updateFileUsers = async ({
       fileId,
       {
         users: emails,
-      },
+      }
     );
 
     revalidatePath(path);
@@ -216,12 +240,12 @@ export const deleteFile = async ({
     const deletedFile = await databases.deleteDocument(
       appwriteConfig.databaseId,
       appwriteConfig.filesCollectionId,
-      fileId,
+      fileId
     );
 
     if (deletedFile) {
       // Parse the bucketField string to get bucketId and fileId
-      const [bucketId, fileId] = file.bucketField.split('/');
+      const [bucketId, fileId] = file.bucketField.split("/");
       // Delete the actual file from storage
       await storage.deleteFile(bucketId, fileId);
     }
@@ -243,7 +267,7 @@ export async function getTotalSpaceUsed() {
     const files = await databases.listDocuments(
       appwriteConfig.databaseId,
       appwriteConfig.filesCollectionId,
-      [Query.equal("owner", [currentUser.$id])],
+      [Query.equal("owner", [currentUser.$id])]
     );
 
     const totalSpace = {

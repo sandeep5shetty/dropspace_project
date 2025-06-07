@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "100MB",
+      bodySizeLimit: "100mb",
     },
   },
   images: {
@@ -27,6 +27,17 @@ const nextConfig: NextConfig = {
         hostname: "cloud.appwrite.io",
       },
     ],
+  },
+  webpack: (config) => {
+    config.watchOptions = {
+      poll: 1000,
+      aggregateTimeout: 300,
+    };
+    return config;
+  },
+  // Increase serverless function timeout and body size limit
+  serverRuntimeConfig: {
+    maxDuration: 300, // 5 minutes
   },
 };
 
