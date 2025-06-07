@@ -141,7 +141,7 @@ export const signInUser = async ({ email }: { email: string }) => {
       return parseStringify({ accountId: existingUser.accountId });
     }
 
-    return parseStringify({ accountId: null, error: "User not found" });
+    return parseStringify({ accountId: null, error: "User not found. Please sign up" });
   } catch (error) {
     handleError(error, "Failed to sign in user");
   }
