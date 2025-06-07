@@ -49,7 +49,7 @@ export const createAccount = async ({
   if (existingUser) {
     return parseStringify({
       accountId: null,
-      error: "User already exists. Please sign in instead."
+      error: "User already exists. Please log in instead."
     });
   }
 
@@ -127,7 +127,7 @@ export const signOutUser = async () => {
   } catch (error) {
     handleError(error, "Failed to sign out user");
   } finally {
-    redirect("/sign-in");
+    redirect("/log-in");
   }
 };
 

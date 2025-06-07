@@ -74,9 +74,8 @@ const AuthForm = ({ type }: { type: FormType }) => {
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="auth-form">
-          <h1 className="form-title">
-            {type === "sign-in" ? "Sign In" : "Sign Up"}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="auth-form">          <h1 className="form-title">
+            {type === "sign-in" ? "Log In" : "Sign Up"}
           </h1>
           {type === "sign-up" && (
             <FormField
@@ -128,8 +127,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             type="submit"
             className="form-submit-button"
             disabled={isLoading}
-          >
-            {type === "sign-in" ? "Sign In" : "Sign Up"}
+          >            {type === "sign-in" ? "Log In" : "Sign Up"}
 
             {isLoading && (
               <Image
@@ -144,18 +142,16 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
           {errorMessage && <p className="error-message">{errorMessage}</p>}
 
-          <div className="body-2 flex justify-center">
-            <p className="text-light-100">
+          <div className="body-2 flex justify-center">            <p className="text-light-100">
               {type === "sign-in"
                 ? "Don't have an account?"
                 : "Already have an account?"}
-            </p>
-            <Link
-              href={type === "sign-in" ? "/sign-up" : "/sign-in"}
+            </p>            <Link
+              href={type === "sign-in" ? "/sign-up" : "/log-in"}
               className="ml-1 font-medium text-brand"
             >
               {" "}
-              {type === "sign-in" ? "Sign Up" : "Sign In"}
+              {type === "sign-in" ? "Sign Up" : "Log In"}
             </Link>
           </div>
         </form>
