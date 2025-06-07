@@ -24,7 +24,6 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
   const [isUploading, setIsUploading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Use useEffect to handle hydration
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -39,8 +38,9 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
         const uploadPromises = acceptedFiles.map(async (file) => {
           if (file.size > MAX_FILE_SIZE) {
             setFiles((prevFiles) =>
-              prevFiles.filter((f) => f.name !== file.name),
-            );            toast({
+              prevFiles.filter((f) => f.name !== file.name)
+            );
+            toast({
               variant: "destructive",
               description: (
                 <p className="body-2">
@@ -52,25 +52,41 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
             return;
           }
 
-          const uploadedFile = await uploadFile({ file, ownerId, accountId, path });
-          
-          if (uploadedFile) {
-            setFiles((prevFiles) =>
-              prevFiles.filter((f) => f.name !== file.name),
-            );            toast({
-              variant: "default",
-              description: (
-                <p className="body-2">
-                  <span className="font-semibold">{file.name}</span> uploaded successfully.
-                </p>
-              ),
-              className: "bg-brand text-white",
-            });
-          } else {            toast({
+          try {
+            const uploadedFile = await uploadFile({ file, ownerId, accountId, path });
+            
+            if (uploadedFile) {
+              setFiles((prevFiles) =>
+                prevFiles.filter((f) => f.name !== file.name)
+              );
+              toast({
+                variant: "default",
+                description: (
+                  <p className="body-2">
+                    <span className="font-semibold">{file.name}</span> uploaded
+                    successfully.
+                  </p>
+                ),
+                className: "bg-brand text-white",
+              });
+            } else {
+              toast({
+                variant: "destructive",
+                description: (
+                  <p className="body-2">
+                    Failed to upload <span className="font-semibold">{file.name}</span>
+                  </p>
+                ),
+              });
+            }
+          } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+            toast({
               variant: "destructive",
               description: (
                 <p className="body-2">
-                  Failed to upload <span className="font-semibold">{file.name}</span>
+                  Error uploading <span className="font-semibold">{file.name}</span>
+                  {error instanceof Error ? `: ${error.message}` : ''}
                 </p>
               ),
             });
@@ -79,11 +95,13 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
 
         await Promise.all(uploadPromises);
       } catch (err) {
-        console.error('Upload error:', err);        toast({
+        console.error("Upload error:", err);
+        toast({
           variant: "destructive",
           description: (
             <p className="body-2">
               An error occurred while uploading files.
+              {err instanceof Error ? `: ${err.message}` : ''}
             </p>
           ),
         });
@@ -91,21 +109,24 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
         setIsUploading(false);
       }
     },
-    [ownerId, accountId, path, isUploading, toast],
+    [ownerId, accountId, path, isUploading, toast]
   );
 
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps } = useDropzone({ 
+    onDrop,
+    maxSize: MAX_FILE_SIZE,
+    multiple: true 
+  });
 
   const handleRemoveFile = (
     e: React.MouseEvent<HTMLImageElement, MouseEvent>,
-    fileName: string,
+    fileName: string
   ) => {
     e.stopPropagation();
     setFiles((prevFiles) => prevFiles.filter((file) => file.name !== fileName));
   };
 
   if (!mounted) {
-    // Return a placeholder with the same structure to prevent hydration issues
     return (
       <div className="cursor-pointer">
         <Button type="button" className={cn("uploader-button", className)}>
@@ -132,7 +153,9 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
           height={24}
         />
         <p>Upload</p>
-      </Button>      {files.length > 0 && (
+      </Button>
+
+      {files.length > 0 && (
         <ul className="uploader-preview-list mb-20">
           <h4 className="h4 text-gray-500">Uploading</h4>
           {files.map((file, index) => {
@@ -147,14 +170,18 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
                     type={type}
                     extension={extension}
                     url={convertFileToUrl(file)}
-                  />                  <div className="preview-item-name flex items-center gap-2">
-                    <span className="truncate text-sm sm:text-base">{file.name}</span>
-                    {isUploading && (                      <Image
+                  />
+                  <div className="preview-item-name flex items-center gap-2">
+                    <span className="truncate text-sm sm:text-base">
+                      {file.name}
+                    </span>
+                    {isUploading && (
+                      <Image
                         src="/assets/icons/file-loader.gif"
                         width={80}
                         height={26}
                         alt="Loading"
-                        className="size-auto w-[60px] sm:w-[80px] shrink-0"
+                        className="w-[60px] shrink-0 sm:w-[80px]"
                       />
                     )}
                   </div>

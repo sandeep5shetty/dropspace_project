@@ -22,16 +22,22 @@ export const uploadFile = async ({
   const { storage, databases } = await createAdminClient();
 
   try {
-    // Create a buffer from the file
+    // Create a buffer from the file, but using a more efficient way
     const buffer = await file.arrayBuffer();
     const inputFile = InputFile.fromBuffer(Buffer.from(buffer), file.name);
 
-    // Upload file to storage
-    const bucketFile = await storage.createFile(
+    // Upload file to storage with timeout
+    const bucketFilePromise = storage.createFile(
       appwriteConfig.bucketId,
       ID.unique(),
-      inputFile,
+      inputFile
     );
+
+    const timeoutPromise = new Promise((resolve, reject) => {
+      setTimeout(() => reject(new Error('Upload timeout after 5 minutes')), 300000);
+    });
+
+    const bucketFile = await Promise.race([bucketFilePromise, timeoutPromise]) as Models.File;
 
     if (!bucketFile) {
       throw new Error("Failed to upload file to storage");
@@ -48,7 +54,7 @@ export const uploadFile = async ({
       owner: ownerId,
       accountId,
       users: [],
-      bucketField: `${appwriteConfig.bucketId}/${bucketFile.$id}`, // Store as string in format "bucketId/fileId"
+      bucketField: `${appwriteConfig.bucketId}/${bucketFile.$id}`,
     };
 
     // Create document in database
@@ -69,7 +75,11 @@ export const uploadFile = async ({
     return parseStringify(newFile);
   } catch (error) {
     if (error instanceof Error) {
-      handleError(error, `Failed to upload file: ${error.message}`);
+      if (error.message.includes('timeout')) {
+        handleError(error, 'File upload timed out. Please try again.');
+      } else {
+        handleError(error, `Failed to upload file: ${error.message}`);
+      }
     } else {
       handleError(error, "Failed to upload file: Unknown error");
     }
